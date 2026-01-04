@@ -21,7 +21,9 @@
     },
     "production": {
       "autoIncrement": true,
-      "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+      }
     }
   },
   "submit": {
