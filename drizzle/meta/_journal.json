@@ -8,6 +8,27 @@
       "when": 1767503406137,
       "tag": "0000_quiet_gauntlet",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1767516679175,
+      "tag": "0001_military_siren",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1767545055071,
+      "tag": "0002_careless_cardiac",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1767545175515,
+      "tag": "0003_past_prism",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `books_title_unique` ON `books` (`title`);

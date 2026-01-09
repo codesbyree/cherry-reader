@@ -7,11 +7,11 @@ import {
 
 export const books = sqliteTable("books", {
   id: integer().primaryKey({ autoIncrement: true }),
-  title: text().notNull(),
+  title: text().notNull().unique(),
   path: text().notNull(),
   author: text(),
-  year: integer(),
   created_at: text().notNull(),
+  updated_at: text().notNull(),
   image: text().notNull(),
 });
 
@@ -35,3 +35,7 @@ export const book_category = sqliteTable(
     pk: primaryKey({ columns: [table.book_id, table.category_id] }),
   })
 );
+
+export type Book = typeof books.$inferInsert;
+export type Category = typeof category.$inferInsert;
+export type BookCategory = typeof book_category.$inferInsert;

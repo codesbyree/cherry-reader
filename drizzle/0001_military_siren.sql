@@ -1,0 +1,1 @@
+ALTER TABLE `books` ADD `updated_at` text NOT NULL;

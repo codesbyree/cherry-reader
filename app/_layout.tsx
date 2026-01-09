@@ -13,6 +13,8 @@ import "@/global.css";
 
 import { db } from "@/db/client";
 import migrations from "@/drizzle/migrations";
+import { useBookStore } from "@/store/useBookStore";
+import { useLibraryStore } from "@/store/useLibraryStore";
 import { useMigrations } from "drizzle-orm/op-sqlite/migrator";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -24,15 +26,13 @@ function App() {
       <Stack
         screenOptions={{
           header: (props) => (
-            <View className="justify-between items-center flex-row px-6 h-16">
-              <Text className="text-lg font-outfit-bold text-pink-600">
-                Hello World
+            <View className="justify-between items-center flex-row px-6 h-16 bg-white">
+              <Text className="text-xl font-outfit-bold text-pink-600">
+                Cherry Reader
               </Text>
 
-              <Pressable>
-                <View>
-                  <SettingsIcon size={24} />
-                </View>
+              <Pressable className="w-10 h-10 justify-center items-center">
+                <SettingsIcon size={24} strokeWidth={1.5} />
               </Pressable>
             </View>
           ),
@@ -53,6 +53,7 @@ export default function RootLayout() {
     "Outfit-Regular": require("@/assets/fonts/Outfit-Regular.ttf"),
   });
 
+  const { selectLocaleDirectory, directory } = useLibraryStore();
   const { success: migrationSuccess, error: migrationError } = useMigrations(
     db,
     migrations
@@ -62,6 +63,8 @@ export default function RootLayout() {
     async function setup() {
       if ((fontsLoaded || fontError) && migrationSuccess) {
         try {
+          // await selectLocaleDirectory();
+          await useBookStore.getState().hydrate();
         } catch (error: any) {
           console.log(error.message);
         } finally {
@@ -74,7 +77,13 @@ export default function RootLayout() {
     }
 
     setup();
-  }, [fontsLoaded, fontError, migrationSuccess]);
+  }, [
+    fontsLoaded,
+    fontError,
+    migrationSuccess,
+    directory,
+    selectLocaleDirectory,
+  ]);
 
   if (migrationError)
     return (
