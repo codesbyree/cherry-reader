@@ -1,0 +1,1 @@
+ALTER TABLE `books` ADD `opened` integer DEFAULT 0;

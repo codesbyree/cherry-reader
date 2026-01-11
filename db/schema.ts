@@ -10,9 +10,12 @@ export const books = sqliteTable("books", {
   title: text().notNull().unique(),
   path: text().notNull(),
   author: text(),
+  image: text().notNull(),
+  opened: integer().default(0),
+  current_page: integer().default(0),
+  total_page: integer().default(0),
   created_at: text().notNull(),
   updated_at: text().notNull(),
-  image: text().notNull(),
 });
 
 export const category = sqliteTable("category", {
