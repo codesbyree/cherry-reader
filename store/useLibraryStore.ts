@@ -2,20 +2,24 @@ import { db } from "@/db/client";
 import * as schema from "@/db/schema";
 import { DOMParser } from "@xmldom/xmldom";
 import { Buffer } from "buffer";
-import { inArray } from "drizzle-orm";
 import * as FileSystem from "expo-file-system";
 import { unzipSync } from "fflate";
 import moment from "moment";
 import { create } from "zustand";
+import { createJSONStorage, persist, StateStorage } from "zustand/middleware";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { inArray } from "drizzle-orm";
 import { useBookStore } from "./useBookStore";
 
 type Store = {
   isLoading: boolean;
+  isSyncing: boolean;
   directory?: string;
   selectLocaleDirectory: () => Promise<void>;
   syncLibrary: () => Promise<void>;
-  newFiles: number;
-  newFilesSynced: number;
+  newFilesCount: number;
+  newFilesSyncedCount: number;
 };
 
 const getEpubMetadata = async (fileUri: string) => {
@@ -94,74 +98,94 @@ const getEpubMetadata = async (fileUri: string) => {
   }
 };
 
-export const useLibraryStore = create<Store>((set, get) => ({
-  isLoading: false,
-  directory: undefined,
-  newFiles: 0,
-  newFilesSynced: 0,
-  selectLocaleDirectory: async () => {
-    if (!get().directory) {
-      const directory = await FileSystem.Directory.pickDirectoryAsync();
-      if (directory) {
-        set({ directory: directory.uri });
-      }
+export const useLibraryStore = create<Store>()(
+  persist(
+    (set, get) => ({
+      isLoading: false,
+      directory: undefined,
+      isSyncing: false,
+      newFilesCount: 0,
+      newFilesSyncedCount: 0,
+      selectLocaleDirectory: async () => {
+        if (!get().directory) {
+          const directory = await FileSystem.Directory.pickDirectoryAsync();
+          if (directory) {
+            set({ directory: directory.uri });
+          }
+        }
+      },
+      syncLibrary: async () => {
+        set({ isSyncing: true });
+
+        try {
+          if (!get().directory) return;
+
+          const directory = new FileSystem.Directory(get().directory as string);
+          const epubFiles = await directory.list();
+
+          const booksInDirectory = epubFiles.filter((f) =>
+            f.uri.toLowerCase().includes(".epub")
+          );
+          const normalizedBookUris = booksInDirectory.map((x) =>
+            x.uri.replace(/\/$/, "").toLowerCase()
+          );
+
+          const existingBooks = await db
+            .select({ path: schema.books.path })
+            .from(schema.books);
+          const existingBooksUris = existingBooks.map((b) =>
+            b.path.replace(/\/$/, "").toLowerCase()
+          );
+
+          const unsavedBooks = booksInDirectory.filter(
+            (x) =>
+              !existingBooksUris.includes(
+                x.uri.replace(/\/$/, "").toLowerCase()
+              )
+          );
+          const deletedBooks = existingBooksUris.filter(
+            (x) => !normalizedBookUris.includes(x)
+          );
+
+          set({ newFilesCount: unsavedBooks.length });
+
+          if (deletedBooks.length > 0) {
+            await db
+              .delete(schema.books)
+              .where(inArray(schema.books.path, deletedBooks));
+          }
+
+          if (unsavedBooks.length) {
+            for (const file of unsavedBooks) {
+              const metadata = await getEpubMetadata(file.info().uri as string);
+              set({ newFilesSyncedCount: get().newFilesSyncedCount + 1 });
+
+              await db
+                .insert(schema.books)
+                .values({
+                  title: metadata.title as string,
+                  author: metadata.author as string,
+                  path: file.info().uri as string,
+                  image: metadata.cover as string,
+                  created_at: moment(new Date()).format("YYYY-MM-DD"),
+                  updated_at: moment(new Date()).format("YYYY-MM-DD"),
+                })
+                .onConflictDoNothing();
+            }
+
+            await useBookStore.getState().hydrate();
+          }
+        } catch (error: any) {
+          console.error("Sync Error:", error);
+        } finally {
+          set({ isSyncing: false });
+        }
+      },
+    }),
+    {
+      name: "library-storage",
+      storage: createJSONStorage(() => AsyncStorage as StateStorage),
+      partialize: (state) => ({ directory: state.directory }),
     }
-  },
-  syncLibrary: async () => {
-    set({ isLoading: true });
-
-    try {
-      if (!get().directory) return;
-
-      const directory = new FileSystem.Directory(get().directory as string);
-      const epubFiles = await directory.list();
-
-      const filteredEpubs = epubFiles.filter((f) =>
-        f.uri.toLowerCase().includes(".epub")
-      );
-      const newUris = filteredEpubs.map((f) => f.uri);
-
-      const existingBooks = await db.select().from(schema.books);
-      const existingUris = existingBooks.map((b) => b.path);
-
-      const newFiles = filteredEpubs.filter(
-        (epub) => !existingUris.includes(epub.uri)
-      );
-
-      set({ newFiles: newFiles.length });
-
-      const deletedUris = existingUris.filter(
-        (epub) => !newUris.includes(epub)
-      );
-
-      if (deletedUris.length > 0) {
-        await db
-          .delete(schema.books)
-          .where(inArray(schema.books.path, deletedUris));
-      }
-
-      for (const file of newFiles) {
-        const metadata = await getEpubMetadata(file.info().uri as string);
-        set({ newFilesSynced: get().newFilesSynced + 1 });
-
-        await db
-          .insert(schema.books)
-          .values({
-            title: metadata.title as string,
-            author: metadata.author as string,
-            path: file.info().uri as string,
-            image: metadata.cover as string,
-            created_at: moment(new Date()).format("YYYY-MM-DD"),
-            updated_at: moment(new Date()).format("YYYY-MM-DD"),
-          })
-          .onConflictDoNothing();
-
-        await useBookStore.getState().hydrate();
-      }
-    } catch (error: any) {
-      console.error("Sync Error:", error);
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-}));
+  )
+);
