@@ -25,7 +25,7 @@ export default function SearchResult() {
   }, [searchBookByTitle, searchQuery]);
 
   const contentRenderer = () => {
-    if (isLoading)
+    if (isLoading && !searchData.length)
       return (
         <View className="flex-1 items-center justify-center bg-white">
           <View className="animate-spin duration-1000 repeat-infinite">
@@ -43,7 +43,7 @@ export default function SearchResult() {
           Found {searchData.length} item{searchData.length > 1 ? "s" : ""}
         </Text>
 
-        <View className="flex-row flex-wrap justify-center gap-2">
+        <View className="flex-row flex-wrap gap-2 px-6">
           {searchData.map((book) => (
             <BookCard {...book} key={book.id} />
           ))}

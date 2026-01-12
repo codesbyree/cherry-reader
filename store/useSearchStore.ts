@@ -1,7 +1,9 @@
 import { db } from "@/db/client";
 import * as schema from "@/db/schema";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { sql } from "drizzle-orm";
 import { create } from "zustand";
+import { createJSONStorage, persist, StateStorage } from "zustand/middleware";
 
 type Store = {
   isLoading: boolean;
@@ -14,48 +16,63 @@ type Store = {
   getSearchHistory: (query: string) => schema.Book[];
 };
 
-export const useSearchStore = create<Store>((set, get) => ({
-  isLoading: false,
-  searchQuery: "",
-  searchResult: {},
-  searchQueries: {},
-  updateSearchQuery: (query) => {
-    set({ searchQuery: query });
-  },
-  searchBookByTitle: async (query: string) => {
-    set({ isLoading: true });
+export const useSearchStore = create<Store>()(
+  persist(
+    (set, get) => ({
+      isLoading: false,
+      searchQuery: "",
+      searchResult: {},
+      searchQueries: {},
+      updateSearchQuery: (query) => {
+        set({ searchQuery: query });
+      },
+      searchBookByTitle: async (query: string) => {
+        try {
+          const formattedQuery = query.trim();
 
-    try {
-      if (!query.trim().length) return;
+          const isQueryValid = Boolean(formattedQuery.length);
+          const isQueryAlreadyExist =
+            get().searchResult.hasOwnProperty(formattedQuery);
 
-      const formattedQuery = query.trim();
-      const searchResult = get().searchResult;
-      const prevSearchQueries = get().searchQueries;
-      if (!searchResult.hasOwnProperty(formattedQuery)) {
-        const result = await db
-          .select()
-          .from(schema.books)
-          .where(sql`${schema.books.title} LIKE ${"%" + formattedQuery + "%"}`);
+          if (!isQueryValid || isQueryAlreadyExist) return;
 
-        searchResult[query] = result;
-        prevSearchQueries[query] = query;
-      }
+          const result = await db
+            .select()
+            .from(schema.books)
+            .where(
+              sql`${schema.books.title} LIKE ${"%" + formattedQuery + "%"}`
+            );
 
-      set((state) => ({
-        isLoading: false,
-        searchQueries: { ...state.searchQueries, ...prevSearchQueries },
-        searchResult: { ...state.searchResult, ...searchResult },
-      }));
-    } catch (error: any) {
-      console.log(error.message);
-    } finally {
-      set({ isLoading: false });
+          set((state) => ({
+            isLoading: false,
+            searchQueries: {
+              ...state.searchQueries,
+              [query]: query,
+            },
+            searchResult: {
+              ...state.searchResult,
+              [query]: result,
+            },
+          }));
+        } catch (error: any) {
+          console.log(error.message);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      clearSearchHistory: () => {
+        set((state) => ({ searchResult: {}, searchQueries: {} }));
+      },
+      getSearchHistory: (query: string) => {
+        return get().searchResult[query.trim()] || [];
+      },
+    }),
+    {
+      name: "search-history-storage",
+      storage: createJSONStorage(() => AsyncStorage as StateStorage),
+      partialize: (state) => ({
+        searchQueries: state.searchQueries,
+      }),
     }
-  },
-  clearSearchHistory: () => {
-    set((state) => ({ searchResult: {}, searchQueries: {} }));
-  },
-  getSearchHistory: (query: string) => {
-    return get().searchResult[query.trim()] || [];
-  },
-}));
+  )
+);

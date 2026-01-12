@@ -21,6 +21,7 @@ export default function SearchFormScreen() {
             contentStyle="flex-row gap-4 justify-start"
             onPress={() => {
               updateSearchQuery(q.trim());
+              useSearchStore.setState({ isLoading: true });
               router.push("/search/search-result");
             }}
           >
