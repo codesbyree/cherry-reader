@@ -13,7 +13,9 @@ import { cn } from "@/lib/utils";
 import { useLibraryStore } from "@/store/useLibraryStore";
 
 import { useBookStore } from "@/store/useBookStore";
+import { useSearchStore } from "@/store/useSearchStore";
 import { useSelectedBookStore } from "@/store/useSelectedBookStore";
+
 import Button from "./ui/button";
 
 export default function AppBar() {
@@ -105,6 +107,7 @@ function DeleteSelectedBooks() {
   const { deleteSelectedBooks } = useBookStore();
 
   const onPress = async () => {
+    useSearchStore.setState({ searchResult: {} });
     await deleteSelectedBooks();
   };
 
