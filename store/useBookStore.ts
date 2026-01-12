@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import { db } from "@/db/client";
 import * as schema from "@/db/schema";
-import { desc, eq, inArray } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import moment from "moment";
 import { useSelectedBookStore } from "./useSelectedBookStore";
 
@@ -24,7 +24,10 @@ export const useBookStore = create<Store>((set, get) => ({
     set({ isLoading: true });
 
     try {
-      const books = await db.select().from(schema.books);
+      const books = await db
+        .select()
+        .from(schema.books)
+        .orderBy(asc(schema.books.title));
       const recentlyReadBooks = await db
         .select()
         .from(schema.books)

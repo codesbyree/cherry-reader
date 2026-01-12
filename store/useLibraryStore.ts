@@ -133,18 +133,20 @@ export const useLibraryStore = create<Store>()(
           const existingBooks = await db
             .select({ path: schema.books.path })
             .from(schema.books);
-          const existingBooksUris = existingBooks.map((b) =>
+          const existingBooksUris = existingBooks.map((b) => b.path);
+          const normalizedExistingBooksUrils = existingBooks.map((b) =>
             b.path.replace(/\/$/, "").toLowerCase()
           );
 
           const unsavedBooks = booksInDirectory.filter(
             (x) =>
-              !existingBooksUris.includes(
+              !normalizedExistingBooksUrils.includes(
                 x.uri.replace(/\/$/, "").toLowerCase()
               )
           );
           const deletedBooks = existingBooksUris.filter(
-            (x) => !normalizedBookUris.includes(x)
+            (x) =>
+              !normalizedBookUris.includes(x.replace(/\/$/, "").toLowerCase())
           );
 
           set({ newFilesCount: unsavedBooks.length });
