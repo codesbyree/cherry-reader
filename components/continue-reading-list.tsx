@@ -7,7 +7,7 @@ export default function ContinueReadingList() {
 
   if (recentlyReadBooks.length)
     return (
-      <View className="py-4 bg-pink-100 gap-3">
+      <View className="py-3 bg-pink-100 gap-3">
         <Text className="font-outfit text-lg ml-6 text-slate-900">
           Continue Reading
         </Text>

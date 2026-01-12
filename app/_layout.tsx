@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { ScrollView, Text } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import "react-native-reanimated";
 
@@ -15,7 +16,6 @@ import migrations from "@/drizzle/migrations";
 import { useBookStore } from "@/store/useBookStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useMigrations } from "drizzle-orm/op-sqlite/migrator";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import AppBar from "@/components/app-bar";
 
@@ -41,6 +41,7 @@ function App() {
         <Stack.Screen name="index" options={{ header: () => <AppBar /> }} />
         <Stack.Screen name="reader" options={{ headerShown: false }} />
         <Stack.Screen name="search" options={{ headerShown: false }} />
+        <Stack.Screen name="setting" options={{ headerShown: false }} />
       </Stack>
 
       <StatusBar style="auto" backgroundColor="#FFF" />

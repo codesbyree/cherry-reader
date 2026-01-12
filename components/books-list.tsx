@@ -1,40 +1,46 @@
+import { ArrowDownAZIcon, ArrowUpAZIcon } from "lucide-react-native";
+import { useState } from "react";
+import { Text, View } from "react-native";
+
 import { useBookStore } from "@/store/useBookStore";
-import { ScrollView, Text, View } from "react-native";
 
 import BookCard from "./ui/book-card";
-import Button from "./ui/button";
-
-const categories = [
-  "All",
-  "Science Fiction",
-  "Dystopian",
-  "Fiction",
-  "Young Adults",
-];
+import ToggleButton from "./ui/toggle-button";
 
 export default function BooksList() {
+  const [sorter, setSorter] = useState<SortingBehaviourTypes>("asc");
+  const [filter, setFilter] = useState("");
+
   const { books } = useBookStore();
+
+  const sortBooks = (sorter: SortingBehaviourTypes) => {
+    if (sorter === "asc") return books;
+    return [...books].sort((a, b) => b.title.localeCompare(a.title));
+  };
+  const sortedBooks = sortBooks(sorter);
+
+  const toggleSorter = () => {
+    if (sorter === "asc") setSorter("desc");
+    else setSorter("asc");
+  };
 
   return (
     <View className="py-4 bg-white gap-3">
-      <Text className="font-outfit text-lg ml-6 text-slate-900">My Shelf</Text>
+      <View className="flex-row justify-between items-center px-6 pr-[14px]">
+        <Text className="font-outfit text-lg text-slate-900">My Shelf</Text>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="flex-1"
-      >
-        <View className="px-6 gap-[10px] flex-row">
-          {categories.map((c) => (
-            <Button key={c} style="px-3 bg-pink-50 h-[30px]">
-              <Text className="font-outfit text-slate-600">{c}</Text>
-            </Button>
-          ))}
-        </View>
-      </ScrollView>
+        <ToggleButton
+          state={sorter === "asc"}
+          onPress={toggleSorter}
+          style="border-transparent"
+        >
+          <ArrowDownAZIcon size={24} strokeWidth={1.5} color={"#E92F51"} />
+          <ArrowUpAZIcon size={24} strokeWidth={1.5} color={"#E92F51"} />
+        </ToggleButton>
+      </View>
 
-      <View className="flex-row flex-wrap justify-center gap-2">
-        {books.map((book) => (
+      <View className="flex-row flex-wrap px-6 gap-2">
+        {sortedBooks.map((book) => (
           <BookCard {...book} key={book.id} />
         ))}
       </View>
